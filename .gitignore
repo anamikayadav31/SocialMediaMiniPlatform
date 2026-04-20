@@ -1,0 +1,44 @@
+# Build outputs
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+
+# Rider IDE
+.idea/
+
+# VS Code
+.vscode/
+
+# NuGet
+packages/
+
+# Secrets — NEVER commit
+appsettings.Development.json
+appsettings.Production.json
+*.env
+.env
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp files
+*.tmp
+*.temp
+
+# Test results
+TestResults/
+coverage/
+
+# Publish output
+publish/
+out/
