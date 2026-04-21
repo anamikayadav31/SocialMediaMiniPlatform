@@ -1,44 +1,39 @@
-# Build outputs
-bin/
-obj/
+# ── Secrets (never commit real credentials) ───────────────────
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
 
-# Visual Studio files
+# ── Build outputs ─────────────────────────────────────────────
+**/bin/
+**/obj/
+
+# ── Visual Studio ─────────────────────────────────────────────
 .vs/
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
 
-# Rider IDE
+# ── Rider ─────────────────────────────────────────────────────
 .idea/
 
-# VS Code
+# ── VS Code ───────────────────────────────────────────────────
 .vscode/
 
-# NuGet
-packages/
-
-# Secrets — NEVER commit
-appsettings.Development.json
-appsettings.Production.json
-*.env
-.env
-
-# Logs
-*.log
-logs/
-
-# OS files
+# ── OS ────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Temp files
-*.tmp
-*.temp
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
 
-# Test results
-TestResults/
-coverage/
+# ── NuGet ─────────────────────────────────────────────────────
+*.nupkg
+.nuget/
+packages/
 
-# Publish output
-publish/
-out/
+# ── User secrets ──────────────────────────────────────────────
+secrets.json
+**/secrets.json
