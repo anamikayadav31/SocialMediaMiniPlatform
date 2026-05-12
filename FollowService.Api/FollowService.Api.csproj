@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>`n    <RootNamespace>FollowService.Api</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>   <RootNamespace>FollowService.Api</RootNamespace>
     <AssemblyName>FollowService.Api</AssemblyName>
   </PropertyGroup>
 
@@ -25,7 +25,5 @@
   </ItemGroup>
 
 
-  <ItemGroup>
-    <Compile Remove="Program.cs" />
-  </ItemGroup>
+ 
 </Project>
