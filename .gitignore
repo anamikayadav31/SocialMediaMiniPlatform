@@ -1,0 +1,39 @@
+# ── Secrets (never commit real credentials) ───────────────────
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+
+# ── Build outputs ─────────────────────────────────────────────
+**/bin/
+**/obj/
+
+# ── Visual Studio ─────────────────────────────────────────────
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ── Rider ─────────────────────────────────────────────────────
+.idea/
+
+# ── VS Code ───────────────────────────────────────────────────
+.vscode/
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── NuGet ─────────────────────────────────────────────────────
+*.nupkg
+.nuget/
+packages/
+
+# ── User secrets ──────────────────────────────────────────────
+secrets.json
+**/secrets.json
