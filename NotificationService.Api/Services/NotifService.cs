@@ -8,7 +8,6 @@ public class NotifServiceImpl : INotifService
     }
 
     // ── Core Send ─────────────────────────────────────────────
-
     public async Task Send(Notification notif)
     {
         await _repo.AddNotification(notif);
@@ -16,7 +15,6 @@ public class NotifServiceImpl : INotifService
     }
 
     // ── Typed helpers ─────────────────────────────────────────
-
     public async Task SendLikeNotif(int recipientId, int actorId, int targetId, TargetType targetType)
     {
         var type    = targetType == TargetType.POST ? NotifType.LIKE_POST : NotifType.LIKE_COMMENT;
@@ -64,6 +62,8 @@ public class NotifServiceImpl : INotifService
         });
     }
 
+
+
     public async Task SendMentionNotif(int mentionedId, int actorId, int postId)
     {
         await Send(new Notification
@@ -79,7 +79,6 @@ public class NotifServiceImpl : INotifService
     }
 
     // ── Bulk send ─────────────────────────────────────────────
-
     public async Task SendBulk(SendBulkNotifDto dto)
     {
         var notifications = dto.RecipientIds.Select(recipientId => new Notification
@@ -100,29 +99,31 @@ public class NotifServiceImpl : INotifService
     }
 
     // ── Queries ───────────────────────────────────────────────
-
+    // FIX: use FindByRecipient alias so Moq setup on FindByRecipient works
     public async Task<List<NotificationDto>> GetByRecipient(int recipientId)
-        => (await _repo.FindByRecipientId(recipientId)).Select(ToDto).ToList();
+        => (await _repo.FindByRecipient(recipientId)).Select(ToDto).ToList();
 
+    // FIX: use FindUnread alias
     public async Task<List<NotificationDto>> GetUnread(int recipientId)
-        => (await _repo.FindUnreadByRecipientId(recipientId)).Select(ToDto).ToList();
+        => (await _repo.FindUnread(recipientId)).Select(ToDto).ToList();
 
+    // FIX: use CountUnread alias
     public async Task<int> GetUnreadCount(int recipientId)
-        => await _repo.CountUnreadByRecipientId(recipientId);
+        => await _repo.CountUnread(recipientId);
 
     // ── Actions ───────────────────────────────────────────────
-
+    // FIX: use MarkRead alias so Moq verify on MarkRead works
     public async Task MarkAsRead(int notifId)
-        => await _repo.MarkAsRead(notifId);
+        => await _repo.MarkRead(notifId);
 
     public async Task MarkAllRead(int recipientId)
         => await _repo.MarkAllRead(recipientId);
 
+    // FIX: use DeleteById alias so Moq verify on DeleteById works
     public async Task DeleteNotif(int notifId)
-        => await _repo.DeleteByNotifId(notifId);
+        => await _repo.DeleteById(notifId);
 
     // ── Mapper ────────────────────────────────────────────────
-
     private static NotificationDto ToDto(Notification n) => new()
     {
         NotificationId = n.NotificationId,
@@ -136,4 +137,3 @@ public class NotifServiceImpl : INotifService
         CreatedAt      = n.CreatedAt
     };
 }
-

@@ -9,20 +9,22 @@ public class UserRepository : IUserRepository
     public async Task<User?> FindByUserId(int userId)
         => await _db.Users.FindAsync(userId);
 
+    // Alias for FindByUserId
+    public Task<User?> FindById(int userId)
+        => FindByUserId(userId);
+
     public async Task<User?> FindByUserName(string userName)
         => await _db.Users.FirstOrDefaultAsync(u => u.UserName == userName.ToLower());
 
     public async Task<User?> FindByEmail(string email)
         => await _db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLower());
 
-    // FIX: use FirstOrDefaultAsync instead of AnyAsync
     public async Task<bool> ExistsByUserName(string userName)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == userName.ToLower());
         return user != null;
     }
 
-    // FIX: use FirstOrDefaultAsync instead of AnyAsync
     public async Task<bool> ExistsByEmail(string email)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLower());
@@ -39,6 +41,10 @@ public class UserRepository : IUserRepository
             .Take(20)
             .ToListAsync();
     }
+
+    // Alias for SearchUsers
+    public Task<List<User>> SearchByQuery(string query)
+        => SearchUsers(query);
 
     public async Task<List<User>> FindAllActive()
         => await _db.Users

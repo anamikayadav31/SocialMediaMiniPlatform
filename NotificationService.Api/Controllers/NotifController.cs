@@ -52,7 +52,7 @@ public class NotifController : ControllerBase
     }
 
     [HttpPost("sendBulk")]
-    [Authorize]
+    // Internal service-to-service endpoint — no auth required
     public async Task<IActionResult> SendBulk([FromBody] SendBulkNotifDto dto)
     {
         await _svc.SendBulk(dto);

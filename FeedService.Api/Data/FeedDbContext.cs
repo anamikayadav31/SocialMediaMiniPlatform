@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 public class FeedDbContext : DbContext
 {
+    // Parameterless constructor required for Moq mocking in unit tests
+    public FeedDbContext() : base() { }
+
     public FeedDbContext(DbContextOptions<FeedDbContext> options) : base(options) { }
 
     public DbSet<FeedItem> FeedItems => Set<FeedItem>();

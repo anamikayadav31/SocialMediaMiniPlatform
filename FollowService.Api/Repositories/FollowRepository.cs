@@ -16,11 +16,19 @@ public class FollowRepository : IFollowRepository
             .OrderByDescending(f => f.CreatedAt)
             .ToListAsync();
 
+    // Alias for FindFollowersByUserId
+    public Task<List<Follow>> FindFollowers(int userId)
+        => FindFollowersByUserId(userId);
+
     public async Task<List<Follow>> FindFollowingByUserId(int userId)
         => await _db.Follows
             .Where(f => f.FollowerId == userId && f.Status == FollowStatus.ACCEPTED)
             .OrderByDescending(f => f.CreatedAt)
             .ToListAsync();
+
+    // Alias for FindFollowingByUserId
+    public Task<List<Follow>> FindFollowing(int userId)
+        => FindFollowingByUserId(userId);
 
     public async Task<List<Follow>> FindPendingRequests(int userId)
         => await _db.Follows
@@ -34,6 +42,10 @@ public class FollowRepository : IFollowRepository
             f.FolloweeId == followeeId &&
             f.Status == FollowStatus.ACCEPTED);
 
+    // Alias for IsFollowing
+    public Task<bool> ExistsAccepted(int followerId, int followeeId)
+        => IsFollowing(followerId, followeeId);
+
     public async Task<int> CountFollowers(int userId)
         => await _db.Follows.CountAsync(f =>
             f.FolloweeId == userId && f.Status == FollowStatus.ACCEPTED);
@@ -41,6 +53,12 @@ public class FollowRepository : IFollowRepository
     public async Task<int> CountFollowing(int userId)
         => await _db.Follows.CountAsync(f =>
             f.FollowerId == userId && f.Status == FollowStatus.ACCEPTED);
+
+    public async Task<List<int>> GetAcceptedFolloweeIds(int userId)
+        => await _db.Follows
+            .Where(f => f.FollowerId == userId && f.Status == FollowStatus.ACCEPTED)
+            .Select(f => f.FolloweeId)
+            .ToListAsync();
 
     public async Task AddFollow(Follow follow)
         => await _db.Follows.AddAsync(follow);

@@ -12,6 +12,9 @@ public class ToggleLikeDto
 
     [Required]
     public TargetType TargetType { get; set; }
+
+    // Post/Comment ke owner ka userId — notification ke liye
+    public int? OwnerId { get; set; }
 }
 
 // ── Outgoing DTOs ─────────────────────────────────────────────

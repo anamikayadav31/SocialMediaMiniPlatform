@@ -11,6 +11,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 builder.Services.AddDbContext<LikeDbContext>(options =>
@@ -19,6 +20,7 @@ builder.Services.AddDbContext<LikeDbContext>(options =>
 
 builder.Services.AddScoped<ILikeRepository, LikeRepository>();
 builder.Services.AddScoped<ILikeService, LikeServiceImpl>();
+builder.Services.AddHttpClient(); // NotifService HTTP calls ke liye
 
 // Register your real INotifService implementation here.
 // Stub below just logs — replace with your actual HTTP/gRPC/message-bus call.

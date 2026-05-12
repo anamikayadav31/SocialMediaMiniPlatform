@@ -15,6 +15,8 @@ public interface IUserService
     Task<List<UserProfileDto>> GetSuggestedUsers(int userId);
     Task<List<UserProfileDto>> GetAllUsers();
     Task<bool>                 SuspendUser(int userId);
+    Task<bool>                 ActivateUser(int userId);
     Task<bool>                 AdminDeleteUser(int userId);
     Task                       UpdateCounters(int userId, string field, int delta);
+    Task<AuthResponseDto?>     GoogleLogin(string email, string? name, string? picture);
 }

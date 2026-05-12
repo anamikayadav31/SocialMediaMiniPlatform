@@ -43,7 +43,10 @@ public class CommentServiceImpl : ICommentService
 
         // Notify post author
         await _postSvc.IncrementCommentCount(dto.PostId);
-        await _notif.SendCommentNotif(dto.UserId, dto.PostId, comment.CommentId);
+        if (dto.PostOwnerId.HasValue)
+            await _notif.SendCommentNotif(dto.UserId, dto.PostId, comment.CommentId, dto.PostOwnerId.Value);
+        else
+            await _notif.SendCommentNotif(dto.UserId, dto.PostId, comment.CommentId);
 
         return ToDto(comment);
     }

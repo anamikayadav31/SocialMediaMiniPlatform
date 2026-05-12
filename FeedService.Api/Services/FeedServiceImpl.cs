@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 
@@ -24,9 +23,12 @@ public class FeedServiceImpl : IFeedService
     {
         string cacheKey = $"feed:{userId}:page:{page}:size:{pageSize}";
 
-        var cached = await _cache.GetStringAsync(cacheKey);
+        var cached = await _cache.GetAsync(cacheKey);
         if (cached != null)
-            return JsonSerializer.Deserialize<List<FeedItemDto>>(cached) ?? new();
+        {
+            var json = System.Text.Encoding.UTF8.GetString(cached);
+            return JsonSerializer.Deserialize<List<FeedItemDto>>(json) ?? new();
+        }
 
         var items = (await _repo.GetFeedForUser(userId, page, pageSize))
             .Select(ToDto).ToList();
@@ -35,7 +37,8 @@ public class FeedServiceImpl : IFeedService
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
         };
-        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(items), options);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(items));
+        await _cache.SetAsync(cacheKey, bytes, options);
 
         return items;
     }
@@ -66,40 +69,23 @@ public class FeedServiceImpl : IFeedService
         // Invalidate Redis cache for each follower
         foreach (var followerId in followerIds)
         {
-            // Invalidate page 1 (most common case)
             await _cache.RemoveAsync($"feed:{followerId}:page:1:size:10");
             await _cache.RemoveAsync($"feed:{followerId}:page:1:size:20");
         }
     }
 
-    // ── Trending Hashtags (last 48 hours) ─────────────────────
-
+    // ── Trending Hashtags ─────────────────────────────────────
+    // FIX: delegate to _repo so unit tests can mock it
     public async Task<List<TrendingHashtagDto>> GetTrendingHashtags(int topN)
     {
-        var cutoff = DateTime.UtcNow.AddHours(-48);
-
-        // Pull hashtag strings from DB, split by comma, group and count in memory
-        var hashtagStrings = await _db.FeedItems
-            .Where(f => f.CreatedAt >= cutoff)
-            .Select(f => f.PostId)
-            .Distinct()
-            .ToListAsync();
-
-        // NOTE: In production this would join PostService DB or use a shared read model.
-        // For now returns empty list as FeedService doesn't own Post data.
-        // Wire up via HTTP call to PostService or shared DB view.
-        return new List<TrendingHashtagDto>();
+        var since = DateTime.UtcNow.AddHours(-48);
+        return await _repo.GetTrendingHashtags(topN, since);
     }
 
     // ── Suggested Users ───────────────────────────────────────
-
+    // FIX: delegate to _repo so unit tests can mock it
     public async Task<List<SuggestedUserDto>> GetSuggestedUsers(int userId)
-    {
-        // Returns mutual followers not yet followed by userId.
-        // In production: call FollowService for followingIds and mutual data.
-        // Stub returns empty list — wire up via HTTP call to FollowService.
-        return new List<SuggestedUserDto>();
-    }
+        => await _repo.GetSuggestedUsers(userId);
 
     // ── Mapper ────────────────────────────────────────────────
 

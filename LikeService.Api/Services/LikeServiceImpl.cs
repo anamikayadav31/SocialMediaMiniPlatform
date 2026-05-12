@@ -13,7 +13,7 @@ public class LikeServiceImpl : ILikeService
 
     // ── Toggle ────────────────────────────────────────────────────────────────
 
-    public async Task<ToggleLikeResultDto> ToggleLike(int userId, int targetId, TargetType targetType)
+    public async Task<ToggleLikeResultDto> ToggleLike(int userId, int targetId, TargetType targetType, int? ownerId = null)
     {
         bool alreadyLiked = await _repo.HasLiked(userId, targetId, targetType);
 
@@ -28,8 +28,11 @@ public class LikeServiceImpl : ILikeService
             else
             {
                 await AddLike(userId, targetId, targetType);
-                // Dispatch notification after successful like
-                await _notif.SendLikeNotif(userId, targetId, targetType);
+                // Send notification only if we know the owner
+                if (ownerId.HasValue)
+                    await _notif.SendLikeNotifToRecipient(ownerId.Value, userId, targetId, targetType);
+                else
+                    await _notif.SendLikeNotif(userId, targetId, targetType);
             }
 
             await tx.CommitAsync();

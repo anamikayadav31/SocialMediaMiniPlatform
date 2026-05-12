@@ -39,13 +39,18 @@ public class PostRepository : IPostRepository
     {
         string pattern = $"%{query}%";
         return await _db.Posts
-            .Where(p => !p.IsDeleted &&
-                        EF.Functions.Like(p.Content, pattern))
+            .Where(p => !p.IsDeleted && (
+                        EF.Functions.Like(p.Content,  pattern) ||
+                        EF.Functions.Like(p.Hashtags ?? "", pattern)))
             .OrderByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
     }
+
+    // Alias for SearchPosts
+    public Task<List<Post>> SearchByContent(string query, int page, int pageSize)
+        => SearchPosts(query, page, pageSize);
 
     public async Task<List<Post>> FindTrending(int hoursBack, int take)
     {
@@ -107,6 +112,10 @@ public class PostRepository : IPostRepository
             await _db.Posts.Where(p => p.PostId == postId)
                 .ExecuteUpdateAsync(s => s.SetProperty(p => p.ShareCount, p => p.ShareCount + delta));
     }
+
+    // Alias for IncrementCount
+    public Task IncrementField(int postId, string field, int delta)
+        => IncrementCount(postId, field, delta);
 
     public async Task SoftDelete(int postId)
         => await _db.Posts.Where(p => p.PostId == postId)

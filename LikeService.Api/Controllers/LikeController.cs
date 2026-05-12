@@ -14,7 +14,7 @@ public class LikeController : ControllerBase
     [Authorize]
     public async Task<IActionResult> ToggleLike([FromBody] ToggleLikeDto dto)
     {
-        var result = await _svc.ToggleLike(dto.UserId, dto.TargetId, dto.TargetType);
+        var result = await _svc.ToggleLike(dto.UserId, dto.TargetId, dto.TargetType, dto.OwnerId);
         return Ok(result);
     }
 

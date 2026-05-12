@@ -7,11 +7,12 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── FIX: Add JsonStringEnumConverter so enum strings like "NONE", "PUBLIC" deserialize correctly ──
+// FIX: Add JsonStringEnumConverter so enum strings like "NONE", "PUBLIC" deserialize correctly
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 builder.Services.AddDbContext<PostDbContext>(options =>
@@ -54,8 +55,8 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title   = "ConnectSphere — Post API",
-        Version = "v1",
+        Title       = "ConnectSphere — Post API",
+        Version     = "v1",
         Description = "Post creation, feed, trending, hashtags"
     });
 
@@ -93,6 +94,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+// ✅ ADD: Swagger middleware was missing — add these two lines
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
