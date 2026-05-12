@@ -12,6 +12,9 @@ public class AddCommentDto
 
     public int? ParentCommentId { get; set; }
 
+    // Post owner ka userId — notification ke liye
+    public int? PostOwnerId { get; set; }
+
     [Required]
     [MaxLength(2000)]
     public string Content { get; set; } = string.Empty;

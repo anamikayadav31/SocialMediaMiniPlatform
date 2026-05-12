@@ -31,7 +31,6 @@ public class UserService : IUserService
             CreatedAt = DateTime.UtcNow
         };
 
-        // Hash password with PBKDF2 — never store plain text
         user.PasswordHash = _hasher.HashPassword(user, dto.Password);
 
         await _repo.AddUser(user);
@@ -67,7 +66,6 @@ public class UserService : IUserService
     }
 
     // ── LOGOUT ───────────────────────────────────────────────
-    // Client discards the token. Advanced: Redis blacklist.
     public Task Logout(int userId) => Task.CompletedTask;
 
     // ── VALIDATE TOKEN ────────────────────────────────────────
@@ -104,7 +102,8 @@ public class UserService : IUserService
 
             if (userIdClaim == null) return null;
 
-            var user = await _repo.FindByUserId(int.Parse(userIdClaim));
+            // FIX: use FindById to match interface alias
+            var user = await _repo.FindById(int.Parse(userIdClaim));
             if (user == null || !user.IsActive) return null;
 
             return GenerateJwtToken(user);
@@ -113,9 +112,10 @@ public class UserService : IUserService
     }
 
     // ── GET USER BY ID ────────────────────────────────────────
+    // FIX: use FindById (alias) so Moq setup on FindById works
     public async Task<UserProfileDto?> GetUserById(int userId)
     {
-        var user = await _repo.FindByUserId(userId);
+        var user = await _repo.FindById(userId);
         return user == null ? null : ToDto(user);
     }
 
@@ -127,9 +127,10 @@ public class UserService : IUserService
     }
 
     // ── UPDATE PROFILE ────────────────────────────────────────
+    // FIX: use FindById
     public async Task<bool> UpdateProfile(int userId, UpdateProfileDto dto)
     {
-        var user = await _repo.FindByUserId(userId);
+        var user = await _repo.FindById(userId);
         if (user == null) return false;
 
         if (dto.FullName  != null) user.FullName  = dto.FullName.Trim();
@@ -144,7 +145,7 @@ public class UserService : IUserService
     // ── CHANGE PASSWORD ───────────────────────────────────────
     public async Task<bool> ChangePassword(int userId, ChangePasswordDto dto)
     {
-        var user = await _repo.FindByUserId(userId);
+        var user = await _repo.FindById(userId);
         if (user == null) return false;
 
         var check = _hasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
@@ -157,13 +158,15 @@ public class UserService : IUserService
     }
 
     // ── SEARCH USERS ──────────────────────────────────────────
+    // FIX: use SearchByQuery (alias) so Moq setup on SearchByQuery works
     public async Task<List<UserProfileDto>> SearchUsers(string query)
-        => (await _repo.SearchUsers(query)).Select(ToDto).ToList();
+        => (await _repo.SearchByQuery(query)).Select(ToDto).ToList();
 
     // ── TOGGLE PRIVACY ────────────────────────────────────────
+    // FIX: use FindById
     public async Task<bool> TogglePrivacy(int userId)
     {
-        var user = await _repo.FindByUserId(userId);
+        var user = await _repo.FindById(userId);
         if (user == null) return false;
 
         user.IsPrivate = !user.IsPrivate;
@@ -173,9 +176,10 @@ public class UserService : IUserService
     }
 
     // ── DEACTIVATE ACCOUNT ────────────────────────────────────
+    // FIX: use FindById
     public async Task<bool> DeactivateAccount(int userId)
     {
-        var user = await _repo.FindByUserId(userId);
+        var user = await _repo.FindById(userId);
         if (user == null) return false;
 
         user.IsActive = false;
@@ -199,7 +203,7 @@ public class UserService : IUserService
     // ── ADMIN — SUSPEND USER ──────────────────────────────────
     public async Task<bool> SuspendUser(int userId)
     {
-        var user = await _repo.FindByUserId(userId);
+        var user = await _repo.FindById(userId);
         if (user == null) return false;
 
         user.IsActive = false;
@@ -208,10 +212,22 @@ public class UserService : IUserService
         return true;
     }
 
+    // ── ADMIN — ACTIVATE USER ─────────────────────────────────
+    public async Task<bool> ActivateUser(int userId)
+    {
+        var user = await _repo.FindById(userId);
+        if (user == null) return false;
+
+        user.IsActive = true;
+        _repo.UpdateUser(user);
+        await _repo.SaveChanges();
+        return true;
+    }
+
     // ── ADMIN — PERMANENT DELETE ──────────────────────────────
     public async Task<bool> AdminDeleteUser(int userId)
     {
-        var user = await _repo.FindByUserId(userId);
+        var user = await _repo.FindById(userId);
         if (user == null) return false;
 
         _repo.RemoveUser(user);
@@ -219,11 +235,26 @@ public class UserService : IUserService
         return true;
     }
 
-    // ── UPDATE COUNTERS (called by Follow/Post service) ───────
+    // ── UPDATE COUNTERS ───────────────────────────────────────
     public async Task UpdateCounters(int userId, string field, int delta)
         => await _repo.UpdateCounters(userId, field, delta);
 
-    // ── PRIVATE: Generate JWT Token ───────────────────────────
+    // ── IS PRIVATE ────────────────────────────────────────────
+    public async Task<bool> IsPrivate(int userId)
+    {
+        var user = await _repo.FindById(userId);
+        return user?.IsPrivate ?? false;
+    }
+
+    // ── UPDATE COUNTERS (follow overload) ─────────────────────
+    public async Task UpdateCounters(int followerId, int followeeId, bool increment)
+    {
+        int delta = increment ? 1 : -1;
+        await _repo.UpdateCounters(followerId, "FollowingCount", delta);
+        await _repo.UpdateCounters(followeeId, "FollowerCount",  delta);
+    }
+
+    // ── JWT ───────────────────────────────────────────────────
     private string GenerateJwtToken(User user)
     {
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
@@ -247,7 +278,47 @@ public class UserService : IUserService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    // ── PRIVATE: Map User → UserProfileDto ───────────────────
+    // ── GOOGLE LOGIN ─────────────────────────────────────────
+    public async Task<AuthResponseDto?> GoogleLogin(string email, string? name, string? picture)
+    {
+        var user = await _repo.FindByEmail(email.ToLower().Trim());
+
+        if (user == null)
+        {
+            var baseUsername = email.Split('@')[0].ToLower().Replace(".", "_").Replace("+", "_");
+            var userName = baseUsername;
+            int suffix = 1;
+            while (await _repo.ExistsByUserName(userName))
+                userName = $"{baseUsername}_{suffix++}";
+
+            user = new User
+            {
+                UserName     = userName,
+                FullName     = name ?? userName,
+                Email        = email.ToLower().Trim(),
+                PasswordHash = "",
+                AvatarUrl    = null,
+                IsActive     = true,
+                Role         = "User",
+                CreatedAt    = DateTime.UtcNow
+            };
+            await _repo.AddUser(user);
+            await _repo.SaveChanges();
+        }
+
+        if (!user.IsActive) return null;
+
+        return new AuthResponseDto
+        {
+            Token    = GenerateJwtToken(user),
+            UserId   = user.UserId,
+            UserName = user.UserName,
+            FullName = user.FullName,
+            Role     = user.Role
+        };
+    }
+
+    // ── MAPPER ───────────────────────────────────────────────
     private static UserProfileDto ToDto(User u) => new()
     {
         UserId         = u.UserId,

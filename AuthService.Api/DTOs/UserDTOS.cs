@@ -74,3 +74,14 @@ public class UserProfileDto
     public int      PostCount      { get; set; }
     public DateTime CreatedAt      { get; set; }
 }
+public class GoogleTokenDto
+{
+    public string IdToken { get; set; } = string.Empty;
+}
+
+public class GoogleUserInfo
+{
+    public string  Email   { get; set; } = string.Empty;
+    public string? Name    { get; set; }
+    public string? Picture { get; set; }
+}

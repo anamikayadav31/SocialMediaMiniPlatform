@@ -15,14 +15,11 @@ public class FollowServiceImpl : IFollowService
     }
 
     // ── Follow ────────────────────────────────────────────────
-
     public async Task<FollowDto> FollowUser(int followerId, int followeeId)
     {
-        // Check if already following
         var existing = await _repo.FindByFollowerAndFollowee(followerId, followeeId);
         if (existing != null) return ToDto(existing);
 
-        // Public = ACCEPTED immediately, Private = PENDING
         bool isPrivate = await _userSvc.IsPrivate(followeeId);
         var status = isPrivate ? FollowStatus.PENDING : FollowStatus.ACCEPTED;
 
@@ -37,7 +34,6 @@ public class FollowServiceImpl : IFollowService
         await _repo.AddFollow(follow);
         await _repo.SaveChanges();
 
-        // Update counters only if accepted immediately
         if (status == FollowStatus.ACCEPTED)
             await _userSvc.UpdateCounters(followerId, followeeId, increment: true);
 
@@ -47,7 +43,6 @@ public class FollowServiceImpl : IFollowService
     }
 
     // ── Unfollow ──────────────────────────────────────────────
-
     public async Task UnfollowUser(int followerId, int followeeId)
     {
         var follow = await _repo.FindByFollowerAndFollowee(followerId, followeeId);
@@ -60,12 +55,9 @@ public class FollowServiceImpl : IFollowService
     }
 
     // ── Accept / Reject ───────────────────────────────────────
-
     public async Task<FollowDto?> AcceptFollowRequest(int followId)
     {
-        var follow = await _repo.FindByFollowerAndFollowee(0, 0); // placeholder
-        // Use direct DB lookup via repo
-        follow = (await _repo.FindPendingRequests(0))
+        var follow = (await _repo.FindPendingRequests(0))
             .FirstOrDefault(f => f.FollowId == followId);
 
         if (follow == null || follow.Status != FollowStatus.PENDING) return null;
@@ -93,18 +85,20 @@ public class FollowServiceImpl : IFollowService
     }
 
     // ── Queries ───────────────────────────────────────────────
-
+    // FIX: use FindFollowers alias so Moq setup on FindFollowers works
     public async Task<List<FollowDto>> GetFollowers(int userId)
-        => (await _repo.FindFollowersByUserId(userId)).Select(ToDto).ToList();
+        => (await _repo.FindFollowers(userId)).Select(ToDto).ToList();
 
+    // FIX: use FindFollowing alias
     public async Task<List<FollowDto>> GetFollowing(int userId)
-        => (await _repo.FindFollowingByUserId(userId)).Select(ToDto).ToList();
+        => (await _repo.FindFollowing(userId)).Select(ToDto).ToList();
 
     public async Task<List<FollowDto>> GetPendingRequests(int userId)
         => (await _repo.FindPendingRequests(userId)).Select(ToDto).ToList();
 
+    // FIX: use ExistsAccepted alias so Moq setup on ExistsAccepted works
     public async Task<bool> IsFollowing(int followerId, int followeeId)
-        => await _repo.IsFollowing(followerId, followeeId);
+        => await _repo.ExistsAccepted(followerId, followeeId);
 
     public async Task<int> GetFollowerCount(int userId)
         => await _repo.CountFollowers(userId);
@@ -112,16 +106,14 @@ public class FollowServiceImpl : IFollowService
     public async Task<int> GetFollowingCount(int userId)
         => await _repo.CountFollowing(userId);
 
+    // FIX: use GetAcceptedFolloweeIds alias so Moq setup works
     public async Task<List<int>> GetFollowingIds(int userId)
-    {
-        var following = await _repo.FindFollowingByUserId(userId);
-        return following.Select(f => f.FolloweeId).ToList();
-    }
+        => await _repo.GetAcceptedFolloweeIds(userId);
 
     public async Task<List<FollowDto>> GetMutualFollowers(int userId)
     {
-        var followers  = await _repo.FindFollowersByUserId(userId);
-        var following  = await _repo.FindFollowingByUserId(userId);
+        var followers  = await _repo.FindFollowers(userId);
+        var following  = await _repo.FindFollowing(userId);
 
         var followerIds  = followers.Select(f => f.FollowerId).ToHashSet();
         var followingIds = following.Select(f => f.FolloweeId).ToHashSet();
@@ -135,7 +127,6 @@ public class FollowServiceImpl : IFollowService
     }
 
     // ── Mapper ────────────────────────────────────────────────
-
     private static FollowDto ToDto(Follow f) => new()
     {
         FollowId   = f.FollowId,

@@ -141,6 +141,81 @@ public class UserController : ControllerBase
         return Ok(new { message = "Counter updated." });
     }
 
+    // ── GOOGLE AUTH ───────────────────────────────────────────
+    // POST /api/users/google/verify
+    [HttpPost("google/verify")]
+    public async Task<IActionResult> GoogleVerify([FromBody] GoogleTokenDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.IdToken))
+            return BadRequest(new { message = "ID token is required." });
+
+        // Verify with Google tokeninfo endpoint
+        GoogleUserInfo? googleUser;
+        try { googleUser = await VerifyWithGoogle(dto.IdToken); }
+        catch (Exception ex) { return Unauthorized(new { message = "Google verification failed: " + ex.Message }); }
+
+        if (googleUser == null)
+            return Unauthorized(new { message = "Invalid Google token." });
+
+        var result = await _svc.GoogleLogin(googleUser.Email, googleUser.Name, googleUser.Picture);
+        if (result == null)
+            return Unauthorized(new { message = "Account suspended." });
+
+        return Ok(result);
+    }
+
+    private static async Task<GoogleUserInfo?> VerifyWithGoogle(string token)
+    {
+        using var http = new HttpClient();
+
+        // First try: treat as access_token — use Authorization: Bearer header
+        // Query param ?access_token= is deprecated by Google (returns 401)
+        var req1 = new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/oauth2/v3/userinfo");
+        req1.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        var userInfoRes = await http.SendAsync(req1);
+
+        if (userInfoRes.IsSuccessStatusCode)
+        {
+            var userData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                               await userInfoRes.Content.ReadAsStringAsync());
+            if (!userData.TryGetProperty("email", out var email2)) return null;
+
+            // email_verified can be bool or string depending on Google response
+            bool emailVerified = false;
+            if (userData.TryGetProperty("email_verified", out var ev2))
+            {
+                if (ev2.ValueKind == System.Text.Json.JsonValueKind.True)  emailVerified = true;
+                if (ev2.ValueKind == System.Text.Json.JsonValueKind.String && ev2.GetString() == "true") emailVerified = true;
+            }
+            if (!emailVerified) return null;
+
+            return new GoogleUserInfo
+            {
+                Email   = email2.GetString()!,
+                Name    = userData.TryGetProperty("name",    out var n2) ? n2.GetString() : null,
+                Picture = userData.TryGetProperty("picture", out var p2) ? p2.GetString() : null,
+            };
+        }
+
+        // Second try: treat as id_token — tokeninfo endpoint
+        var res = await http.GetAsync($"https://oauth2.googleapis.com/tokeninfo?id_token={token}");
+        if (!res.IsSuccessStatusCode)
+            throw new Exception($"Google verification failed. access_token status: {userInfoRes.StatusCode}, id_token status: {res.StatusCode}");
+
+        var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                       await res.Content.ReadAsStringAsync());
+        if (!data.TryGetProperty("email",          out var email))    return null;
+        if (!data.TryGetProperty("email_verified", out var verified)) return null;
+        if (verified.GetString() != "true") return null;
+
+        return new GoogleUserInfo
+        {
+            Email   = email.GetString()!,
+            Name    = data.TryGetProperty("name",    out var n) ? n.GetString() : null,
+            Picture = data.TryGetProperty("picture", out var p) ? p.GetString() : null,
+        };
+    }
+
     // ── ADMIN ─────────────────────────────────────────────────
 
     // GET /api/users/admin/all
@@ -157,6 +232,16 @@ public class UserController : ControllerBase
         var success = await _svc.SuspendUser(id);
         if (!success) return NotFound(new { message = "User not found." });
         return Ok(new { message = "User suspended." });
+    }
+
+    // PUT /api/users/admin/activate/{id}
+    [HttpPut("admin/activate/{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ActivateUser(int id)
+    {
+        var success = await _svc.ActivateUser(id);
+        if (!success) return NotFound(new { message = "User not found." });
+        return Ok(new { message = "User activated." });
     }
 
     // DELETE /api/users/admin/delete/{id}

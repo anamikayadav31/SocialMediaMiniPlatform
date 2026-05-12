@@ -11,6 +11,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 builder.Services.AddDbContext<CommentDbContext>(options =>
@@ -19,6 +20,7 @@ builder.Services.AddDbContext<CommentDbContext>(options =>
 
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<ICommentService, CommentServiceImpl>();
+builder.Services.AddHttpClient(); // NotifService HTTP calls ke liye
 builder.Services.AddScoped<INotifService, NotifServiceStub>();
 builder.Services.AddScoped<IPostService, PostServiceStub>();
 

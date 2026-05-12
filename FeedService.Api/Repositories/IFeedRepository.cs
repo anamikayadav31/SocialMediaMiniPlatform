@@ -1,8 +1,10 @@
 public interface IFeedRepository
 {
-    Task<List<FeedItem>> GetFeedForUser(int userId, int page, int pageSize);
-    Task<List<FeedItem>> GetExploreFeed(int userId, int page, int pageSize);
-    Task                 AddFeedItem(FeedItem item);
-    Task                 AddFeedItems(List<FeedItem> items);
-    Task                 SaveChanges();
+    Task<List<FeedItem>>           GetFeedForUser(int userId, int page, int pageSize);
+    Task<List<FeedItem>>           GetExploreFeed(int userId, int page, int pageSize);
+    Task<List<TrendingHashtagDto>> GetTrendingHashtags(int count, DateTime since);
+    Task<List<SuggestedUserDto>>   GetSuggestedUsers(int userId);
+    Task                           AddFeedItem(FeedItem item);
+    Task                           AddFeedItems(List<FeedItem> items);
+    Task                           SaveChanges();
 }

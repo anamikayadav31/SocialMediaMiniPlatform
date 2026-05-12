@@ -11,6 +11,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 builder.Services.AddDbContext<FollowDbContext>(options =>
@@ -20,6 +21,7 @@ builder.Services.AddDbContext<FollowDbContext>(options =>
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();
 builder.Services.AddScoped<IFollowService, FollowServiceImpl>();
 builder.Services.AddScoped<IUserService, UserServiceStub>();
+builder.Services.AddHttpClient(); // NotifService HTTP calls ke liye
 builder.Services.AddScoped<INotifService, NotifServiceStub>();
 
 var jwtKey      = builder.Configuration["Jwt:Key"]!;

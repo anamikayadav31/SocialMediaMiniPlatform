@@ -64,8 +64,9 @@ public class PostServiceImpl : IPostService
     public async Task<List<PostDto>> GetByHashtag(string tag, int page, int pageSize)
         => (await _repo.FindByHashtag(tag, page, pageSize)).Select(ToDto).ToList();
 
+    // FIX: use SearchByContent alias so Moq setup on SearchByContent works
     public async Task<List<PostDto>> SearchPosts(string query, int page, int pageSize)
-        => (await _repo.SearchPosts(query, page, pageSize)).Select(ToDto).ToList();
+        => (await _repo.SearchByContent(query, page, pageSize)).Select(ToDto).ToList();
 
     public async Task<List<PostDto>> GetTrendingPosts(int hoursBack = 24, int take = 20)
         => (await _repo.FindTrending(hoursBack, take)).Select(ToDto).ToList();
@@ -79,8 +80,9 @@ public class PostServiceImpl : IPostService
     public async Task<List<PostDto>> GetTimeline(int userId, int page, int pageSize)
         => (await _repo.FindTimeline(userId, page, pageSize)).Select(ToDto).ToList();
 
+    // FIX: use IncrementField alias so Moq verify on IncrementField works
     public async Task IncrementCount(int postId, string field, int delta)
-        => await _repo.IncrementCount(postId, field, delta);
+        => await _repo.IncrementField(postId, field, delta);
 
     private static PostDto ToDto(Post p) => new()
     {
