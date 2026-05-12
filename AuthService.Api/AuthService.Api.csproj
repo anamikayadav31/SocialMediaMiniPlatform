@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>`n  </PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>  </PropertyGroup>
 
   <ItemGroup>
     <!-- EF Core 9 — compatible with Npgsql 9 -->
