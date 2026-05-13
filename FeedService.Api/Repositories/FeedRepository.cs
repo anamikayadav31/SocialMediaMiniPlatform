@@ -14,16 +14,13 @@ public class FeedRepository : IFeedRepository
             .Take(pageSize)
             .ToListAsync();
 
-    public async Task<List<FeedItem>> GetExploreFeed(int userId, int page, int pageSize)
-        => await _db.FeedItems
-            .Where(f => f.UserId != userId)
-            .GroupBy(f => f.PostId)
-            .Select(g => g.First())
-            .OrderByDescending(f => f.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
+   public async Task<List<FeedItem>> GetExploreFeed(int userId, int page, int pageSize)
+    => await _db.FeedItems
+        .Where(f => f.UserId != userId)
+        .OrderByDescending(f => f.CreatedAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync();
     // FIX: FeedItem does not have a Hashtags property.
     // Unit tests mock this method on IFeedRepository directly, so this body
     // only runs in integration tests. Returns empty list as a safe default.
