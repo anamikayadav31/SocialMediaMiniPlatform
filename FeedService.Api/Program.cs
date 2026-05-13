@@ -15,8 +15,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddDbContext<FeedDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL") ?? builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Memory cache (Redis ke bina)
 builder.Services.AddDistributedMemoryCache();
