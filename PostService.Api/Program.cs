@@ -16,10 +16,12 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddDbContext<PostDbContext>(options =>
-    options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL") ?? builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<IPostService, PostServiceImpl>();
+builder.Services.AddHttpClient(); // Fanout ke liye
 
 var jwtKey      = builder.Configuration["Jwt:Key"]!;
 var jwtIssuer   = builder.Configuration["Jwt:Issuer"]!;

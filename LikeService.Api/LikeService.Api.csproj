@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings> <RootNamespace>LikeService.Api</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>   <RootNamespace>LikeService.Api</RootNamespace>
     <AssemblyName>LikeService.Api</AssemblyName>
   </PropertyGroup>
 

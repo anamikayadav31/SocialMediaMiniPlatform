@@ -1,12 +1,22 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
+using System.Text.Json;
 
 [ApiController]
 [Route("api/posts")]
 public class PostController : ControllerBase
 {
     private readonly IPostService _svc;
-    public PostController(IPostService svc) { _svc = svc; }
+    private readonly IHttpClientFactory _httpFactory;
+    private const string FOLLOW_BASE = "http://localhost:5400";
+    private const string FEED_BASE   = "http://localhost:5600";
+
+    public PostController(IPostService svc, IHttpClientFactory httpFactory)
+    {
+        _svc = svc;
+        _httpFactory = httpFactory;
+    }
 
     // POST /api/posts
     [HttpPost]
@@ -14,7 +24,56 @@ public class PostController : ControllerBase
     public async Task<IActionResult> CreatePost([FromBody] CreatePostDto dto)
     {
         var result = await _svc.CreatePost(dto);
+        if (result != null)
+        {
+            // Background mein fanout karo — response block mat karo
+            _ = Task.Run(() => FanoutToFollowers(result.PostId, dto.UserId));
+        }
         return Ok(result);
+    }
+
+    private async Task FanoutToFollowers(int postId, int authorId)
+    {
+        try
+        {
+            var http = _httpFactory.CreateClient();
+
+            // 1. Get followers list (People following the author)
+            var followersResp = await http.GetAsync($"{FOLLOW_BASE}/api/follows/followers/{authorId}");
+            var followersJson = followersResp.IsSuccessStatusCode ? await followersResp.Content.ReadAsStringAsync() : "[]";
+
+            // 2. Get following list (People the author is following)
+            var followingResp = await http.GetAsync($"{FOLLOW_BASE}/api/follows/following/{authorId}");
+            var followingJson = followingResp.IsSuccessStatusCode ? await followingResp.Content.ReadAsStringAsync() : "[]";
+
+            var targetUserIds = new HashSet<int>();
+
+            // Add Followers
+            using (var doc = JsonDocument.Parse(followersJson)) {
+                foreach (var e in doc.RootElement.EnumerateArray()) {
+                    if (e.TryGetProperty("followerId", out var p)) targetUserIds.Add(p.GetInt32());
+                }
+            }
+
+            // Add Following
+            using (var doc = JsonDocument.Parse(followingJson)) {
+                foreach (var e in doc.RootElement.EnumerateArray()) {
+                    if (e.TryGetProperty("followeeId", out var p)) targetUserIds.Add(p.GetInt32());
+                }
+            }
+
+            // Also ensure author sees their own post in feed (optional, but often desired)
+            targetUserIds.Add(authorId);
+
+            var finalIds = targetUserIds.Where(id => id > 0).ToList();
+            if (finalIds.Count == 0) return;
+
+            // 3. Fanout to FeedService
+            var fanoutPayload = JsonSerializer.Serialize(new { postId, authorId, followerIds = finalIds });
+            await http.PostAsync($"{FEED_BASE}/api/feed/fanout",
+                new StringContent(fanoutPayload, Encoding.UTF8, "application/json"));
+        }
+        catch { /* Fanout failure should not affect post creation */ }
     }
 
     // GET /api/posts/{id}

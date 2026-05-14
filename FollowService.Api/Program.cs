@@ -15,12 +15,13 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddDbContext<FollowDbContext>(options =>
-    options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL") ?? builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();
 builder.Services.AddScoped<IFollowService, FollowServiceImpl>();
-builder.Services.AddScoped<IUserService, UserServiceStub>();
-builder.Services.AddHttpClient(); // NotifService HTTP calls ke liye
+builder.Services.AddHttpClient<IUserService, UserService>();
+builder.Services.AddHttpClient(); // NotifService generic calls ke liye
 builder.Services.AddScoped<INotifService, NotifServiceStub>();
 
 var jwtKey      = builder.Configuration["Jwt:Key"]!;

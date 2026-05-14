@@ -15,7 +15,8 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddDbContext<CommentDbContext>(options =>
-    options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL") ?? builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<ICommentService, CommentServiceImpl>();

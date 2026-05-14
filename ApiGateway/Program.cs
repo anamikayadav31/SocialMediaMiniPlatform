@@ -10,7 +10,7 @@ builder.Services
     .AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
-// ── 2. JWT Authentication ────────────────────────────────────────────
+// ── 2. JWT Authentication (for Gateway-level auth if needed) ─────────
 var jwtKey      = builder.Configuration["Jwt:Key"]!;
 var jwtIssuer   = builder.Configuration["Jwt:Issuer"]!;
 var jwtAudience = builder.Configuration["Jwt:Audience"]!;
@@ -36,6 +36,8 @@ builder.Services
         };
     });
 
+// NOTE: No named authorization policies — downstream services handle their own auth.
+// YARP simply forwards the Authorization header; each microservice validates the JWT.
 builder.Services.AddAuthorization();
 
 // ── 3. CORS ──────────────────────────────────────────────────────────
@@ -44,21 +46,20 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
         policy.WithOrigins(
                 "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:5175",
                 "http://localhost:4173",
-                "https://socialmediaminiplatform-frontend.onrender.com"
+                "http://localhost:4174"
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials());
 });
 
-// ── 4. Swagger UI (aggregated — shows all 7 services in one UI) ───────
-// NOTE: Gateway itself has no controllers — SwaggerUI here just acts as
-// a viewer that loads each downstream service's /swagger/v1/swagger.json
+// ── 4. Swagger UI ────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // One SwaggerDoc per service — shown as separate dropdowns in the UI
     options.SwaggerDoc("auth",         new OpenApiInfo { Title = "Auth Service",         Version = "v1" });
     options.SwaggerDoc("post",         new OpenApiInfo { Title = "Post Service",         Version = "v1" });
     options.SwaggerDoc("like",         new OpenApiInfo { Title = "Like Service",         Version = "v1" });
@@ -67,7 +68,6 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("notification", new OpenApiInfo { Title = "Notification Service", Version = "v1" });
     options.SwaggerDoc("feed",         new OpenApiInfo { Title = "Feed Service",         Version = "v1" });
 
-    // JWT Bearer button in Swagger UI
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name         = "Authorization",
@@ -89,31 +89,23 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// ── Middleware pipeline ───────────────────────────────────────────────
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
-app.UseAuthorization();
-
-// ── Swagger UI ────────────────────────────────────────────────────────
-// Gateway exposes one Swagger UI page at /swagger
-// Each dropdown entry loads JSON directly from the downstream service
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    // Each downstream service's swagger.json is loaded via the YARP proxy
-    // So the Gateway must be running + each service must be running
-    c.SwaggerEndpoint("/api/users/swagger/v1/swagger.json",         "Auth Service");
-    c.SwaggerEndpoint("/api/posts/swagger/v1/swagger.json",         "Post Service");
-    c.SwaggerEndpoint("/api/likes/swagger/v1/swagger.json",         "Like Service");
-    c.SwaggerEndpoint("/api/comments/swagger/v1/swagger.json",      "Comment Service");
-    c.SwaggerEndpoint("/api/follows/swagger/v1/swagger.json",       "Follow Service");
-    c.SwaggerEndpoint("/api/notifications/swagger/v1/swagger.json", "Notification Service");
-    c.SwaggerEndpoint("/api/feed/swagger/v1/swagger.json",          "Feed Service");
+    c.SwaggerEndpoint("/swagger-auth/v1/swagger.json",         "Auth Service");
+    c.SwaggerEndpoint("/swagger-post/v1/swagger.json",         "Post Service");
+    c.SwaggerEndpoint("/swagger-like/v1/swagger.json",         "Like Service");
+    c.SwaggerEndpoint("/swagger-comment/v1/swagger.json",      "Comment Service");
+    c.SwaggerEndpoint("/swagger-follow/v1/swagger.json",       "Follow Service");
+    c.SwaggerEndpoint("/swagger-notification/v1/swagger.json", "Notification Service");
+    c.SwaggerEndpoint("/swagger-feed/v1/swagger.json",          "Feed Service");
     c.RoutePrefix = "swagger";
     c.DocumentTitle = "ConnectSphere — API Gateway";
 });
 
-// YARP handles all proxying — must be last
+app.UseAuthorization();
 app.MapReverseProxy();
 
 app.Run();
