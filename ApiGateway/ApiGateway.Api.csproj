@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ApiGateway</RootNamespace>
@@ -20,7 +20,7 @@
     <PackageReference Include="Yarp.ReverseProxy" Version="2.2.0" />
 
     <!-- JWT Authentication (same as downstream services) -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
 
     <!-- Swagger UI — aggregates all downstream service docs -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
